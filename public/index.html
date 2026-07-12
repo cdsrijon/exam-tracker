@@ -1,0 +1,787 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Exam Prep Tracker</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,400;0,9..144,600;1,9..144,500;1,9..144,600&family=JetBrains+Mono:wght@400;500;600;700&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+
+  <style>
+    :root{
+      --bg: #14151a;
+      --surface: #1f212a;
+      --surface-2: #262933;
+      --border: #33363f;
+      --border-soft: #2a2d36;
+      --text: #edeae3;
+      --text-dim: #9a9daa;
+      --text-faint: #636672;
+
+      --book: #e0a458;
+      --book-dim: rgba(224,164,88,.13);
+      --sql: #5ec8c2;
+      --sql-dim: rgba(94,200,194,.13);
+      --code: #e0637a;
+      --code-dim: rgba(224,99,122,.13);
+      --res: #9b8de0;
+      --res-dim: rgba(155,141,224,.13);
+      --good: #8bbf8b;
+      --admin: #f59e0b;
+    }
+
+    *{ box-sizing: border-box; }
+    html,body{ margin:0; padding:0; background: transparent; }
+    body{
+      font-family: 'Inter', sans-serif;
+      color: var(--text);
+      background: var(--bg);
+      min-height: 100vh;
+    }
+
+    #profileManager{
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      background: var(--surface);
+      border-bottom: 1px solid var(--border-soft);
+      padding: 12px 20px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 20px;
+      z-index: 100;
+    }
+
+    .profile-info{
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .profile-name{
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 13px;
+      font-weight: 600;
+    }
+
+    .profile-badge{
+      display: inline-block;
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 10px;
+      padding: 3px 8px;
+      border-radius: 12px;
+      background: var(--sql-dim);
+      color: var(--sql);
+    }
+
+    .profile-badge.admin{
+      background: rgba(245,158,11,.2);
+      color: var(--admin);
+    }
+
+    .profile-controls{
+      display: flex;
+      gap: 8px;
+    }
+
+    .btn-small{
+      background: none;
+      border: 1px solid var(--border);
+      color: var(--text-dim);
+      padding: 6px 12px;
+      border-radius: 6px;
+      cursor: pointer;
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 11px;
+      transition: all .2s ease;
+    }
+
+    .btn-small:hover{
+      color: var(--text);
+      border-color: var(--text-dim);
+    }
+
+    .btn-small.admin{
+      border-color: var(--admin);
+      color: var(--admin);
+    }
+
+    .btn-small.admin:hover{
+      background: rgba(245,158,11,.1);
+    }
+
+    #app{
+      max-width: 1000px;
+      margin: 0 auto;
+      padding: 80px 20px 64px;
+      animation: riseIn .5s ease both;
+    }
+
+    @keyframes riseIn{ from{ opacity:0; transform: translateY(8px);} to{ opacity:1; transform: translateY(0);} }
+
+    /* ========== MODAL ========== */
+    .modal-overlay{
+      display: none;
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background: rgba(0,0,0,.6);
+      z-index: 200;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .modal-overlay.open{
+      display: flex;
+    }
+
+    .modal-box{
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 24px;
+      max-width: 500px;
+      width: 90%;
+      max-height: 80vh;
+      overflow-y: auto;
+    }
+
+    .modal-title{
+      font-family: 'Fraunces', serif;
+      font-size: 20px;
+      font-weight: 600;
+      margin: 0 0 20px;
+    }
+
+    .modal-form{
+      display: flex;
+      flex-direction: column;
+      gap: 14px;
+    }
+
+    .form-group{
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+    }
+
+    .form-group label{
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 11px;
+      text-transform: uppercase;
+      letter-spacing: .08em;
+      color: var(--text-faint);
+    }
+
+    .form-group input, .form-group textarea{
+      background: var(--surface-2);
+      border: 1px solid var(--border);
+      color: var(--text);
+      padding: 8px 10px;
+      border-radius: 6px;
+      font-family: 'Inter', sans-serif;
+      font-size: 13px;
+    }
+
+    .form-group textarea{
+      resize: vertical;
+      min-height: 60px;
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 12px;
+    }
+
+    .modal-buttons{
+      display: flex;
+      gap: 8px;
+      margin-top: 20px;
+    }
+
+    .btn-primary{
+      flex: 1;
+      background: var(--sql);
+      color: #0c2422;
+      border: none;
+      padding: 10px;
+      border-radius: 6px;
+      cursor: pointer;
+      font-family: 'JetBrains Mono', monospace;
+      font-weight: 600;
+      font-size: 12px;
+    }
+
+    .btn-primary:hover{ filter: brightness(1.1); }
+
+    .btn-cancel{
+      flex: 1;
+      background: none;
+      border: 1px solid var(--border);
+      color: var(--text-dim);
+      padding: 10px;
+      border-radius: 6px;
+      cursor: pointer;
+      font-family: 'JetBrains Mono', monospace;
+      font-weight: 600;
+      font-size: 12px;
+    }
+
+    .btn-cancel:hover{ color: var(--text); }
+
+    /* ========== ADMIN PANEL ========== */
+    #adminPanel{
+      display: none;
+    }
+
+    #adminPanel.open{
+      display: block;
+    }
+
+    .admin-header{
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      margin-bottom: 20px;
+      padding-bottom: 16px;
+      border-bottom: 1px solid var(--border-soft);
+    }
+
+    .admin-header h2{
+      font-family: 'Fraunces', serif;
+      font-size: 22px;
+      font-weight: 600;
+      margin: 0;
+      color: var(--admin);
+    }
+
+    .admin-badge{
+      display: inline-block;
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 10px;
+      padding: 4px 10px;
+      border-radius: 12px;
+      background: rgba(245,158,11,.2);
+      color: var(--admin);
+    }
+
+    .profiles-grid{
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+      gap: 12px;
+      margin-bottom: 20px;
+    }
+
+    .profile-card{
+      background: var(--surface);
+      border: 1px solid var(--border-soft);
+      border-radius: 8px;
+      padding: 14px;
+    }
+
+    .profile-card-header{
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      margin-bottom: 10px;
+    }
+
+    .profile-card-name{
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 13px;
+      font-weight: 600;
+    }
+
+    .profile-card-id{
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 10px;
+      color: var(--text-faint);
+    }
+
+    .profile-card-stats{
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+      font-size: 11px;
+      color: var(--text-dim);
+      margin-bottom: 10px;
+    }
+
+    .profile-card-actions{
+      display: flex;
+      gap: 6px;
+    }
+
+    .btn-view, .btn-delete{
+      flex: 1;
+      padding: 6px 8px;
+      border: 1px solid var(--border);
+      background: none;
+      color: var(--text-dim);
+      border-radius: 5px;
+      cursor: pointer;
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 10px;
+      transition: all .2s ease;
+    }
+
+    .btn-view:hover{
+      color: var(--text);
+      border-color: var(--text-dim);
+    }
+
+    .btn-delete:hover{
+      color: var(--code);
+      border-color: var(--code);
+    }
+
+    .error-msg{
+      color: var(--code);
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 12px;
+      padding: 10px;
+      background: rgba(224,99,122,.1);
+      border-radius: 6px;
+      margin-bottom: 10px;
+    }
+
+    .success-msg{
+      color: var(--good);
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 12px;
+      padding: 10px;
+      background: rgba(139,191,139,.1);
+      border-radius: 6px;
+      margin-bottom: 10px;
+    }
+
+    /* Preserve existing styles */
+    .eyebrow{ font-family:'JetBrains Mono', monospace; font-size:11px; letter-spacing:.18em; text-transform:uppercase; color:var(--text-faint); }
+    header{ display:flex; justify-content:space-between; align-items:flex-end; flex-wrap:wrap; gap:20px; border-bottom:1px solid var(--border-soft); padding-bottom:22px; margin-bottom:18px; }
+    h1{ font-family:'Fraunces', serif; font-style:italic; font-weight:500; font-size:34px; margin:4px 0 0; letter-spacing:-.01em; }
+    .stat-row{ display:flex; gap:26px; flex-wrap:wrap; }
+    .stat{ text-align:right; }
+    .stat .num{ font-family:'JetBrains Mono', monospace; font-size:22px; font-weight:600; line-height:1; }
+    .stat .lbl{ font-family:'JetBrains Mono', monospace; font-size:10px; letter-spacing:.1em; text-transform:uppercase; color:var(--text-faint); margin-top:5px; }
+    .stat.accent .num{ color:var(--code); }
+
+    .tabnav{ display:flex; gap:2px; border-bottom:1px solid var(--border-soft); margin-bottom:22px; overflow-x:auto; }
+    .tabnav button{ background:none; border:none; color:var(--text-faint); font-family:'JetBrains Mono', monospace; font-size:11.5px; letter-spacing:.06em; text-transform:uppercase; padding:11px 15px; cursor:pointer; border-bottom:2px solid transparent; white-space:nowrap; }
+    .tabnav button:hover{ color:var(--text); }
+    .tabnav button.active{ color:var(--text); border-bottom-color:var(--code); }
+
+    .tracks{ display:grid; grid-template-columns:repeat(3,1fr); gap:14px; margin-bottom:22px; }
+    @media (max-width:680px){ .tracks{ grid-template-columns:1fr; } }
+    .track{ background:var(--surface); border:1px solid var(--border-soft); border-radius:10px; padding:16px 18px; }
+    .track .top{ display:flex; justify-content:space-between; align-items:baseline; margin-bottom:12px; }
+    .track .name{ font-family:'JetBrains Mono', monospace; font-size:11px; letter-spacing:.12em; text-transform:uppercase; color:var(--text-dim); }
+    .track .count{ font-family:'JetBrains Mono', monospace; font-size:20px; font-weight:600; }
+    .track .count small{ font-size:12px; font-weight:400; color:var(--text-faint); }
+    .bar{ height:7px; border-radius:4px; background:var(--surface-2); overflow:hidden; }
+    .bar > div{ height:100%; border-radius:4px; transition:width .4s ease; }
+    .track.book .bar > div{ background:var(--book); }
+    .track.sql .bar > div{ background:var(--sql); }
+    .track.code .bar > div{ background:var(--code); }
+
+    section{ margin-bottom:26px; }
+    .section-head{ display:flex; justify-content:space-between; align-items:baseline; margin-bottom:12px; flex-wrap:wrap; gap:6px; }
+    .section-head h2{ font-family:'Fraunces', serif; font-weight:600; font-size:17px; margin:0; }
+    .section-head .hint{ font-family:'JetBrains Mono', monospace; font-size:10.5px; color:var(--text-faint); }
+
+    .log-panel{ background:var(--surface); border:1px solid var(--border-soft); border-radius:10px; padding:16px 18px; }
+    .log-panel textarea{ width:100%; background:var(--surface-2); border:1px solid var(--border); color:var(--text); border-radius:7px; padding:10px 12px; font-family:'Inter',sans-serif; font-size:13px; min-height:44px; resize:vertical; margin-bottom:10px; }
+    .logged-note{ font-family:'JetBrains Mono', monospace; font-size:11px; color:var(--good); }
+
+    .heatmap-wrap{ background:var(--surface); border:1px solid var(--border-soft); border-radius:10px; padding:20px 20px 16px; }
+    .heatmap{ display:grid; grid-template-columns:repeat(10,1fr); gap:6px; }
+    @media (max-width:560px){ .heatmap{ grid-template-columns:repeat(6,1fr); } }
+    .cell{ position:relative; aspect-ratio:1; border-radius:4px; background:var(--surface-2); border:1px solid var(--border-soft); }
+    .cell.future{ opacity:.35; }
+    .cell.today{ box-shadow:0 0 0 2px var(--code); }
+    .cell .num{ position:absolute; top:3px; left:4px; font-family:'JetBrains Mono', monospace; font-size:8px; color:var(--text-faint); }
+    .heatmap-legend{ display:flex; align-items:center; gap:6px; margin-top:14px; font-family:'JetBrains Mono', monospace; font-size:10px; color:var(--text-faint); }
+    .heatmap-legend .sq{ width:11px; height:11px; border-radius:3px; border:1px solid var(--border-soft); }
+
+    .btn{ border:none; border-radius:7px; padding:9px 18px; font-family:'JetBrains Mono', monospace; font-weight:600; font-size:12.5px; cursor:pointer; transition:filter .15s ease, transform .15s ease; }
+    .btn:hover{ filter:brightness(1.08); }
+    .btn:active{ transform:scale(.97); }
+    .btn.sql{ background:var(--sql); color:#0c2422; }
+    .btn.code{ background:var(--code); color:#1b1013; }
+    .btn.res{ background:var(--res); color:#1a1630; }
+    .btn.book{ background:var(--book); color:#231604; }
+    .btn.ghost{ background:none; border:1px solid var(--border); color:var(--text-dim); }
+
+    .entry-form{ background:var(--surface); border:1px solid var(--border-soft); border-radius:10px; padding:18px; display:grid; grid-template-columns:1fr 1fr; gap:12px; margin-bottom:18px; }
+    .entry-form .full{ grid-column:1/-1; }
+    .entry-form label{ display:block; font-family:'JetBrains Mono', monospace; font-size:10px; letter-spacing:.08em; text-transform:uppercase; color:var(--text-faint); margin-bottom:6px; }
+    .entry-form input, .entry-form select, .entry-form textarea{ width:100%; background:var(--surface-2); border:1px solid var(--border); color:var(--text); border-radius:7px; padding:8px 10px; font-family:'Inter',sans-serif; font-size:13px; }
+    .entry-form textarea{ min-height:64px; resize:vertical; font-family:'JetBrains Mono', monospace; font-size:12.5px; }
+    .cat-add-row{ display:flex; gap:6px; align-items:center; }
+    .cat-add-row input{ flex:1; }
+
+    .chip-row{ display:flex; gap:6px; flex-wrap:wrap; margin-bottom:14px; }
+    .chip{ font-family:'JetBrains Mono', monospace; font-size:11px; padding:5px 11px; border-radius:20px; border:1px solid var(--border); color:var(--text-dim); cursor:pointer; background:none; }
+    .chip.active{ background:var(--surface-2); color:var(--text); border-color:var(--text-dim); }
+
+    .entry-card{ background:var(--surface); border:1px solid var(--border-soft); border-radius:10px; padding:14px 16px; margin-bottom:10px; }
+    .entry-card .row1{ display:flex; justify-content:space-between; align-items:flex-start; gap:10px; }
+    .entry-card .title{ font-family:'Inter', sans-serif; font-weight:600; font-size:14px; }
+    .entry-card .title a{ color:var(--text); text-decoration:none; border-bottom:1px dotted var(--text-faint); }
+    .entry-card .title a:hover{ color:var(--res); border-bottom-color:var(--res); }
+    .entry-card .meta{ font-family:'JetBrains Mono', monospace; font-size:10px; color:var(--text-faint); margin-top:4px; display:flex; gap:8px; flex-wrap:wrap; align-items:center; }
+    .entry-card .desc{ font-size:12.5px; color:var(--text-dim); margin-top:9px; line-height:1.5; }
+    .entry-card .answer-toggle{ margin-top:9px; background:none; border:none; font-family:'JetBrains Mono', monospace; font-size:11px; cursor:pointer; padding:0; }
+    .entry-card.sql .answer-toggle{ color:var(--sql); }
+    .entry-card.code .answer-toggle{ color:var(--code); }
+    .entry-card .answer-box{ display:none; margin-top:8px; background:var(--surface-2); border:1px solid var(--border-soft); border-radius:7px; padding:10px 12px; font-family:'JetBrains Mono', monospace; font-size:12px; white-space:pre-wrap; color:var(--text); }
+    .entry-card .answer-box.open{ display:block; }
+    .del{ background:none; border:none; color:var(--text-faint); cursor:pointer; font-size:17px; line-height:1; padding:2px 6px; flex:none; }
+    .del:hover{ color:var(--code); }
+    .pill{ display:inline-block; font-family:'JetBrains Mono', monospace; font-size:10px; letter-spacing:.03em; padding:3px 9px; border-radius:20px; border:1px solid var(--border); color:var(--text-dim); }
+    .pill.topic-sql{ border-color:var(--sql); color:var(--sql); }
+    .pill.topic-code{ border-color:var(--code); color:var(--code); }
+    .pill.cat{ border-color:var(--res); color:var(--res); }
+    .feel-badge{ font-family:'JetBrains Mono', monospace; font-size:10px; padding:3px 9px; border-radius:20px; }
+    .feel-badge.easy{ background:rgba(139,191,139,.2); color:var(--good); }
+    .feel-badge.ok{ background:rgba(94,200,194,.2); color:var(--sql); }
+    .feel-badge.hard{ background:rgba(224,99,122,.2); color:var(--code); }
+
+    .book-progress{ background:var(--book-dim); color:var(--book); }
+    .chapter-row{ display:flex; justify-content:space-between; align-items:center; padding:12px; background:var(--surface); border:1px solid var(--border-soft); border-radius:8px; margin-bottom:6px; }
+    .chapter-row.done{ opacity:.6; }
+    .chapter-checkbox{ width:18px; height:18px; cursor:pointer; }
+    .chapter-name{ flex:1; font-family:'Inter', sans-serif; margin:0 12px; }
+    .chapter-name[contenteditable]{ outline:1px dashed var(--border); border-radius:4px; padding:2px 4px; }
+    .chapter-details{ display:none; background:var(--surface-2); border:1px solid var(--border); border-radius:8px; padding:12px; margin-top:6px; }
+    .chapter-details.open{ display:block; }
+    .details-row{ display:flex; gap:10px; margin-bottom:8px; align-items:center; }
+    .details-row select, .details-row input{ background:var(--surface); border:1px solid var(--border-soft); color:var(--text); padding:6px 8px; border-radius:5px; font-size:12px; }
+    .details-row label{ font-family:'JetBrains Mono', monospace; font-size:10px; color:var(--text-faint); text-transform:uppercase; }
+
+    .empty-note{ text-align:center; padding:20px; color:var(--text-faint); font-family:'JetBrains Mono', monospace; font-size:12px; }
+
+    @media (prefers-reduced-motion: reduce){ #app{ animation:none; } * { transition:none !important; } }
+  </style>
+</head>
+<body>
+
+<div id="profileManager">
+  <div class="profile-info">
+    <div class="profile-name" id="profileNameDisplay">Loading...</div>
+    <div id="profileBadgeContainer"></div>
+  </div>
+  <div class="profile-controls">
+    <button class="btn-small" id="switchProfileBtn">Switch Profile</button>
+    <button class="btn-small admin" id="adminPanelBtn" style="display:none;">Admin Panel</button>
+    <button class="btn-small" id="logoutBtn">Logout</button>
+  </div>
+</div>
+
+<!-- PROFILE MODAL -->
+<div class="modal-overlay" id="profileModal">
+  <div class="modal-box">
+    <h2 class="modal-title">Profiles</h2>
+    <div id="profileList"></div>
+    <div id="newProfileForm" class="modal-form">
+      <div class="form-group">
+        <label>New Profile Name</label>
+        <input type="text" id="newProfileName" placeholder="e.g. Math Exam 2024">
+      </div>
+      <div class="form-group">
+        <label>Profile ID (unique, no spaces)</label>
+        <input type="text" id="newProfileId" placeholder="e.g. math-exam-2024">
+      </div>
+      <div class="form-group">
+        <label>Password (optional)</label>
+        <input type="password" id="newProfilePassword" placeholder="Leave blank for no password">
+      </div>
+      <div class="modal-buttons">
+        <button class="btn-primary" id="createProfileBtn">Create</button>
+        <button class="btn-cancel" id="closeProfileModalBtn">Close</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ADMIN PANEL -->
+<div class="modal-overlay" id="adminModal">
+  <div class="modal-box" style="max-width: 700px;">
+    <h2 class="modal-title">Admin Panel</h2>
+    <div id="adminContent"></div>
+    <div class="modal-buttons" style="margin-top:20px;">
+      <button class="btn-cancel" id="closeAdminModalBtn" style="flex:1;">Close</button>
+    </div>
+  </div>
+</div>
+
+<div id="app">
+  <header id="mainHeader"></header>
+  <div class="tabnav" id="tabnav"></div>
+  <div id="tabContent"></div>
+</div>
+
+<script>
+(function(){
+  const API_BASE = window.location.origin + '/api';
+  let state = {
+    chapters: [],
+    questions: [],
+    resources: [],
+    logs: [],
+    bookCategories: [],
+    resourceCategories: []
+  };
+  let currentProfile = null;
+  let currentPassword = '';
+  let isAdmin = false;
+  let allProfiles = [];
+
+  // ============ PROFILE MANAGEMENT ============
+  async function loadProfile(profileId, password = '') {
+    try {
+      const url = `${API_BASE}/profile/${profileId}?password=${encodeURIComponent(password)}`;
+      const res = await fetch(url);
+      if (!res.ok) throw new Error(res.statusText);
+      const data = await res.json();
+      state = data.data || state;
+      currentProfile = { id: profileId, password };
+      currentPassword = password;
+      localStorage.setItem('currentProfile', profileId);
+      if (password) localStorage.setItem('profilePassword', password);
+      render();
+    } catch (e) {
+      alert('Error loading profile: ' + e.message);
+    }
+  }
+
+  async function createProfile(name, profileId, password = '') {
+    try {
+      const res = await fetch(`${API_BASE}/profile/${profileId}`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ name, password })
+      });
+      if (!res.ok) throw new Error(res.statusText);
+      await loadProfile(profileId, password);
+      closeProfileModal();
+    } catch (e) {
+      alert('Error creating profile: ' + e.message);
+    }
+  }
+
+  async function saveProfile() {
+    if (!currentProfile) return;
+    try {
+      await fetch(`${API_BASE}/profile/${currentProfile.id}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ password: currentPassword, data: state })
+      });
+    } catch (e) {
+      console.error('Error saving profile:', e);
+    }
+  }
+
+  async function loadAllProfiles(adminPassword) {
+    try {
+      const res = await fetch(`${API_BASE}/admin/profiles`, {
+        headers: { 'x-admin-password': adminPassword }
+      });
+      if (!res.ok) throw new Error('Unauthorized');
+      const data = await res.json();
+      allProfiles = data.profiles;
+      return true;
+    } catch (e) {
+      return false;
+    }
+  }
+
+  // ============ PROFILE MODAL ============
+  function showProfileModal() {
+    const modal = document.getElementById('profileModal');
+    const list = document.getElementById('profileList');
+
+    // Load local profiles from storage
+    const saved = JSON.parse(localStorage.getItem('profiles') || '[]');
+    list.innerHTML = saved.map(p => `
+      <div style="padding:10px; background:var(--surface-2); border-radius:6px; margin-bottom:8px; display:flex; justify-content:space-between; align-items:center;">
+        <div>
+          <div style="font-weight:600;">${p.name}</div>
+          <div style="font-size:11px; color:var(--text-faint);">${p.id}</div>
+        </div>
+        <button class="btn-small" data-load-profile="${p.id}">Load</button>
+      </div>
+    `).join('');
+
+    document.querySelectorAll('[data-load-profile]').forEach(btn => {
+      btn.addEventListener('click', () => {
+        const id = btn.dataset.loadProfile;
+        const prof = saved.find(p => p.id === id);
+        if (prof && prof.password) {
+          const pwd = prompt('Enter password:');
+          if (pwd === null) return;
+          loadProfile(id, pwd);
+        } else {
+          loadProfile(id, '');
+        }
+      });
+    });
+
+    modal.classList.add('open');
+  }
+
+  function closeProfileModal() {
+    document.getElementById('profileModal').classList.remove('open');
+  }
+
+  document.getElementById('switchProfileBtn').addEventListener('click', showProfileModal);
+  document.getElementById('closeProfileModalBtn').addEventListener('click', closeProfileModal);
+
+  document.getElementById('createProfileBtn').addEventListener('click', () => {
+    const name = document.getElementById('newProfileName').value.trim();
+    const id = document.getElementById('newProfileId').value.trim();
+    const pwd = document.getElementById('newProfilePassword').value;
+
+    if (!name || !id) {
+      alert('Name and ID required');
+      return;
+    }
+
+    // Save to local storage
+    const saved = JSON.parse(localStorage.getItem('profiles') || '[]');
+    if (saved.some(p => p.id === id)) {
+      alert('Profile ID already exists');
+      return;
+    }
+    saved.push({ name, id, password: pwd });
+    localStorage.setItem('profiles', JSON.stringify(saved));
+
+    createProfile(name, id, pwd);
+  });
+
+  // ============ ADMIN PANEL ============
+  async function showAdminPanel() {
+    const modal = document.getElementById('adminModal');
+    const adminPwd = prompt('Enter admin password:');
+    if (!adminPwd) return;
+
+    if (!await loadAllProfiles(adminPwd)) {
+      alert('Invalid admin password');
+      return;
+    }
+
+    const content = document.getElementById('adminContent');
+    content.innerHTML = `
+      <div class="admin-header">
+        <h3 style="margin:0;">Profiles Overview</h3>
+      </div>
+      <div class="profiles-grid" id="adminProfilesGrid"></div>
+    `;
+
+    const grid = document.getElementById('adminProfilesGrid');
+    grid.innerHTML = allProfiles.map(p => `
+      <div class="profile-card">
+        <div class="profile-card-header">
+          <div>
+            <div class="profile-card-name">${p.name}</div>
+            <div class="profile-card-id">${p.id}</div>
+          </div>
+        </div>
+        <div class="profile-card-stats">
+          <div>📚 Chapters: ${p.chapterCount || 0}</div>
+          <div>❓ Questions: ${p.questionCount || 0}</div>
+          <div>📎 Resources: ${p.resourceCount || 0}</div>
+          <div>🔐 ${p.hasPassword ? 'Protected' : 'Open'}</div>
+        </div>
+        <div class="profile-card-actions">
+          <button class="btn-view" data-admin-view="${p.id}" data-admin-pwd="${adminPwd}">View</button>
+          <button class="btn-delete" data-admin-delete="${p.id}" data-admin-pwd="${adminPwd}">Delete</button>
+        </div>
+      </div>
+    `).join('');
+
+    document.querySelectorAll('[data-admin-delete]').forEach(btn => {
+      btn.addEventListener('click', async () => {
+        if (!confirm('Delete this profile?')) return;
+        const id = btn.dataset.adminDelete;
+        const pwd = btn.dataset.adminPwd;
+        try {
+          const res = await fetch(`${API_BASE}/admin/profile/${id}`, {
+            method: 'DELETE',
+            headers: { 'x-admin-password': pwd }
+          });
+          if (res.ok) {
+            allProfiles = allProfiles.filter(p => p.id !== id);
+            showAdminPanel();
+          }
+        } catch (e) {
+          alert('Error deleting: ' + e.message);
+        }
+      });
+    });
+
+    modal.classList.add('open');
+  }
+
+  document.getElementById('adminPanelBtn').addEventListener('click', showAdminPanel);
+  document.getElementById('closeAdminModalBtn').addEventListener('click', () => {
+    document.getElementById('adminModal').classList.remove('open');
+  });
+
+  // ============ LOGOUT ============
+  document.getElementById('logoutBtn').addEventListener('click', () => {
+    localStorage.removeItem('currentProfile');
+    localStorage.removeItem('profilePassword');
+    currentProfile = null;
+    currentPassword = '';
+    showProfileModal();
+  });
+
+  // ============ RENDER ============
+  function render() {
+    renderHeader();
+    renderProfileManager();
+  }
+
+  function renderProfileManager() {
+    const nameEl = document.getElementById('profileNameDisplay');
+    const badgeEl = document.getElementById('profileBadgeContainer');
+    const adminBtn = document.getElementById('adminPanelBtn');
+
+    if (currentProfile) {
+      nameEl.textContent = `Profile: ${currentProfile.id}`;
+      badgeEl.innerHTML = currentPassword ? '<div class="profile-badge">🔒 Protected</div>' : '';
+      adminBtn.style.display = 'block';
+    } else {
+      nameEl.textContent = 'No profile loaded';
+      adminBtn.style.display = 'none';
+    }
+  }
+
+  function renderHeader() {
+    const header = document.getElementById('mainHeader');
+    header.innerHTML = `
+      <div><h1>Exam Prep Tracker</h1><p class="eyebrow">Study tracking & resources</p></div>
+    `;
+  }
+
+  // ============ INITIALIZE ============
+  async function init() {
+    const savedProfile = localStorage.getItem('currentProfile');
+    const savedPassword = localStorage.getItem('profilePassword') || '';
+
+    if (savedProfile) {
+      await loadProfile(savedProfile, savedPassword);
+    } else {
+      showProfileModal();
+    }
+  }
+
+  init();
+})();
+</script>
+
+</body>
+</html>
